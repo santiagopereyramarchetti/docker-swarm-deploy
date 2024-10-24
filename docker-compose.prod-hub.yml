@@ -6,10 +6,8 @@ services:
       dockerfile: ./docker/proxy/Dockerfile.proxy
     restart: unless-stopped
     ports:
-      - "3000:80"
-      - "3001:443"
-    volumes:
-      - ./docker/proxy/config/proxy.dev.conf:/etc/nginx/nginx.conf
+      - "80:80"
+      - "443:443"
     depends_on:
       - frontend
       - nginx
@@ -20,27 +18,12 @@ services:
       dockerfile: ./docker/vue/Dockerfile.vue
       target: dev
     restart: unless-stopped
-    volumes:
-      - ./frontend/public:/var/www/public
-      - ./frontend/src:/var/www/src
-      - ./frontend/package.json:/var/www/package.json
-      - ./frontend/package-lock.json:/var/www/package-lock.json
 
   nginx:
     build:
       context: .
       dockerfile: ./docker/nginx/Dockerfile.nginx
     restart: unless-stopped
-    volumes:
-      - ./backend/app:/usr/src/app
-      - ./backend/config:/usr/src/config 
-      - ./backend/database:/usr/src/database 
-      - ./backend/routes:/usr/src/routes 
-      - ./backend/storage:/usr/src/storage 
-      - ./backend/tests:/usr/src/test 
-      - ./backend/composer.json:/usr/src/composer.json 
-      - ./backend/composer.lock:/usr/src/composer.lock 
-      - ./backend/.env:/usr/src/.env
     depends_on:
       - api
 
@@ -49,16 +32,6 @@ services:
       context: .
       dockerfile: ./docker/laravel/Dockerfile.laravel
     restart: unless-stopped
-    volumes:
-      - ./backend/app:/usr/src/app
-      - ./backend/config:/usr/src/config 
-      - ./backend/database:/usr/src/database 
-      - ./backend/routes:/usr/src/routes 
-      - ./backend/storage:/usr/src/storage 
-      - ./backend/tests:/usr/src/test 
-      - ./backend/composer.json:/usr/src/composer.json 
-      - ./backend/composer.lock:/usr/src/composer.lock 
-      - ./backend/.env:/usr/src/.env
     depends_on:
       - mysql
       - redis
@@ -92,7 +65,7 @@ services:
       WAIT_INTERVAL: 10
       MYSQL_CONTAINER_NAME: vagrant-mysql-1
       API_CONTAINER_NAME: vagrant-api-1
-      mode: dev
+      mode: prod
     entrypoint: ["sh","-c","chmod +x /usr/src/init.sh && /usr/src/init.sh"]
     depends_on:
       - mysql

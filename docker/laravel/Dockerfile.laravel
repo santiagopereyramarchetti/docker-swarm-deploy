@@ -29,6 +29,7 @@ RUN mkdir -p /home/backend/.composer && \
 COPY ./backend .
 COPY ./docker/laravel/config/php-fpm/php.ini /usr/local/etc/php/conf.d/php.ini
 COPY ./docker/laravel/config/php-fpm/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY ./docker/laravel/config/init.sh /usr/src/init.sh
 
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
@@ -37,3 +38,4 @@ RUN php artisan storage:link && \
     chmod -R 775 ./storage ./bootstrap/cache
 
 USER backend
+ENTRYPOINT ["sh", "-c", "chmod +x /usr/src/init.sh && /usr/src/init.sh && php-fpm"]

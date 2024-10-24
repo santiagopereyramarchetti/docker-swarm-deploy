@@ -4,7 +4,22 @@ services:
     build:
       context: .
       dockerfile: ./docker/proxy/Dockerfile.proxy
-    restart: unless-stopped
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - "node.labels.db!=true"
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 10
+        window: 15s
+    healtchek:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 2m
     ports:
       - "80:80"
       - "443:443"
@@ -16,14 +31,68 @@ services:
     build:
       context: .
       dockerfile: ./docker/vue/Dockerfile.vue
-      target: dev
-    restart: unless-stopped
+      target: prod
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - "node.labels.db!=true"
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 5
+        window: 15s
+      update_config:
+        parallelism: 1
+        delay: 15s
+        max_failure_ratio: 0
+        order: stop-first
+      rollback_config:
+        parallelism: 1
+        delay: 15s
+        max_failure_ratio: 0
+        order: stop-first
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 1m30s
 
   nginx:
     build:
       context: .
       dockerfile: ./docker/nginx/Dockerfile.nginx
     restart: unless-stopped
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - "node.labels.db!=true"
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 5
+        window: 15s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        monitor: 15s
+        max_failure_ratio: 0
+        order: stop-first
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        monitor: 15s
+        max_failure_ratio: 0
+        order: stop-first
+      # LO QUITAMOS POR AHORA DEBIDO A QUE LA API TODAVIA NO FUNCIONA, RESPONDE CON ERROR
+      # healtcheck:
+      #   test: ["CMD", "curl", "-f", "http://localhost/api/health-check"]
+      #   interval: 30s
+      #   timeout: 5s
+      #   retries: 3
+      #   start_period: 1m
     depends_on:
       - api
 
@@ -31,7 +100,82 @@ services:
     build:
       context: .
       dockerfile: ./docker/laravel/Dockerfile.laravel
-    restart: unless-stopped
+    deploy:
+      replicas: 4
+      placement:
+        constraints:
+          - "node.labels.db!=true"
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 15s
+      update_config:
+        parallelism: 2
+        delay: 10s
+        failure_action: pause
+        monitor: 15s
+        max_failure_ratio: 0
+      rollback_config:
+        parallelism: 2
+        delay: 10s
+        failure_action: pause
+        monitor: 15s
+        max_failure_ratio: 0
+        order: stop-first
+    healtcheck:
+      test: ["CMD", "nc", "-zv", "localhost", "9000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    environment:
+        - APP_NAME=Laravel
+        - APP_ENV=local
+        - APP_KEY=
+        - APP_DEBUG=false
+        - APP_DEBUG=true
+        - APP_TIMEZONE=UTC
+        - APP_URL=http://localhost
+        - APP_LOCALE=en
+        - APP_FALLBACK_LOCALE=en
+        - APP_FAKER_LOCALE=en_US
+        - APP_MAINTENANCE_DRIVER=file
+        - BCRYPT_ROUNDS=12
+        - LOG_CHANNEL=stack
+        - LOG_STACK=single
+        - LOG_DEPRECATIONS_CHANNEL=null
+        - LOG_LEVEL=debug
+        - DB_CONNECTION=mysql
+        - DB_HOST=mysql
+        - DB_PORT=3306
+        - DB_DATABASE=backend
+        - DB_USERNAME=backend
+        - DB_PASSWORD=password
+        - SESSION_DRIVER=database
+        - SESSION_LIFETIME=120
+        - SESSION_ENCRYPT=false
+        - SESSION_PATH=/
+        - SESSION_DOMAIN=null
+        - BROADCAST_CONNECTION=log
+        - FILESYSTEM_DISK=local
+        - QUEUE_CONNECTION=database
+        - CACHE_STORE=database
+        - CACHE_PREFIX=
+        - MEMCACHED_HOST=127.0.0.1
+        - REDIS_CLIENT=phpredis
+        - REDIS_HOST=redis
+        - REDIS_PASSWORD=null
+        - REDIS_PORT=6479
+        - MAIL_MAILER=log
+        - MAIL_HOST=127.0.0.1
+        - MAIL_PORT=2525
+        - MAIL_USERNAME=null
+        - MAIL_PASSWORD=null
+        - MAIL_ENCRYPTION=null
+        - MAIL_FROM_ADDRESS="hello@example.com"
+        - MAIL_FROM_NAME="${APP_NAME}"
+        - VITE_APP_NAME="${APP_NAME}"
     depends_on:
       - mysql
       - redis
@@ -40,34 +184,70 @@ services:
     build:
       context: .
       dockerfile: ./docker/mysql/Dockerfile.mysql
-    restart: unless-stopped
+    deploy:
+      placement:
+        constriants:
+          - "node.labels.db==true"
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 15s
+      update_config:
+        parallelism: 1
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+        order: stop-first
+      rollback_config:
+        parallelism: 1
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+        order: stop-first
+      healthcheck:
+        test: ["CMD", "mysqladmin", "ping"]
+        interval: 30s
+        timeout: 5s
+        retries: 3
+        strat_period: 30s
     volumes:
-      - ./mysqldata:/var/lib/mysql
+      - type: volume
+        source: mysqldata
+        target: /var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: password
 
   redis:
     image: redis:7-alpine
-    restart: unless-stopped
+    deploy:
+      placement:
+        constraints:
+          - "node.labels.db==true"
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 15s
+      update_condig:
+        parallelism: 1
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+        order: stop-first
+      rollback_config:
+        parallelism: 1
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+        order: stop-first
+    healtcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     volumes:
-      - ./redisdata:/data
-
-  inicialization:
-    image: docker:27.3.1-cli-alpine3.20
-    restart: no
-    volumes:
-      - ./docker/inicialization/init.sh:/usr/src/init.sh
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      DB_USER: backend
-      DB_PASSWORD: password
-      MAX_WAIT: 120
-      WAIT_INTERVAL: 10
-      MYSQL_CONTAINER_NAME: vagrant-mysql-1
-      API_CONTAINER_NAME: vagrant-api-1
-      mode: prod
-    entrypoint: ["sh","-c","chmod +x /usr/src/init.sh && /usr/src/init.sh"]
-    depends_on:
-      - mysql
-      - redis
-      - api
+      - type: volume
+        source: redisdata
+        target: /data
