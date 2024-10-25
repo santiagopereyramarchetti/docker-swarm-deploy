@@ -1,13 +1,14 @@
 version: "3.8"
 services:
-  ## FUNCIONA
   proxy:
-    image: docker-swarm-deploy-proxy
+    build:
+      context: .
+      dockerfile: ./docker/proxy/Dockerfile.proxy
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - "node.labels.db!=true"
+      # placement:
+      #   constraints:
+      #     - "node.labels.db!=true"
       restart_policy:
         condition: any
         delay: 10s
@@ -26,14 +27,16 @@ services:
       - frontend
       - nginx
   
-  ## FUNCIONA
   frontend:
-    image: docker-swarm-deploy-frontend
+    build:
+      context: .
+      dockerfile: ./docker/vue/Dockerfile.vue
+      target: prod
     deploy:
       replicas: 2
-      placement:
-        constraints:
-          - "node.labels.db!=true"
+      # placement:
+      #   constraints:
+      #     - "node.labels.db!=true"
       restart_policy:
         condition: any
         delay: 10s
@@ -56,14 +59,15 @@ services:
       retries: 3
       start_period: 1m30s
 
-  ## FUNCIONA
   nginx:
-    image: docker-swarm-deploy-nginx
+    build:
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile.nginx
     deploy:
       replicas: 2
-      placement:
-        constraints:
-          - "node.labels.db!=true"
+      # placement:
+      #   constraints:
+      #     - "node.labels.db!=true"
       restart_policy:
         condition: any
         delay: 10s
@@ -91,15 +95,15 @@ services:
     depends_on:
       - api
 
-  ## FUNCIONA
   api:
-    image: docker-swarm-deploy-api
-    entrypoint: ["sh", "-c", "chmod +x /usr/src/init.sh && /usr/src/init.sh && php-fpm"]
+    build:
+      context: .
+      dockerfile: ./docker/laravel/Dockerfile.laravel
     deploy:
       replicas: 4
-      placement:
-        constraints:
-          - "node.labels.db!=true"
+      # placement:
+      #   constraints:
+      #     - "node.labels.db!=true"
       restart_policy:
         condition: any
         delay: 5s
@@ -175,13 +179,14 @@ services:
       - mysql
       - redis
 
-  ## FUNCIONA
   mysql:
-    image: docker-swarm-deploy-mysql
+    build:
+      context: .
+      dockerfile: ./docker/mysql/Dockerfile.mysql
     deploy:
-      placement:
-        constraints:
-          - "node.labels.db==true"
+      # placement:
+      #   constraints:
+      #     - "node.labels.db==true"
       restart_policy:
         condition: any
         delay: 5s
@@ -212,13 +217,12 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
 
-  ## FUNCIONA
   redis:
     image: redis:7-alpine
     deploy:
-      placement:
-        constraints:
-          - "node.labels.db==true"
+      # placement:
+      #   constraints:
+      #     - "node.labels.db==true"
       restart_policy:
         condition: any
         delay: 5s
