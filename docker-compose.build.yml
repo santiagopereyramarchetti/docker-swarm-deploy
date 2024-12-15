@@ -1,0 +1,107 @@
+version: "3.8"
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: ./docker/proxy/Dockerfile.proxy
+      target: prod
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: santiagopereyramarchetti/docker-swarm-proxy:1.0
+    container_name: proxy 
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - nginx
+  
+  frontend:
+    build:
+      context: .
+      dockerfile: ./docker/vue/Dockerfile.vue
+      target: prod
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: santiagopereyramarchetti/docker-swarm-frontend:1.0
+    container_name: frontend
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile.nginx
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: santiagopereyramarchetti/docker-swarm-nginx:1.0
+    container_name: nginx
+    # env_file:
+    #   - .env
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/laravel/Dockerfile.laravel
+      target: prod
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: santiagopereyramarchetti/docker-swarm-api:1.0
+    container_name: api
+    # env_file:
+    #   - .env
+    #   - .env.ini
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+
+  mysql:
+    build:
+      context: .
+      dockerfile: ./docker/mysql/Dockerfile.mysql
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: santiagopereyramarchetti/docker-swarm-mysql:1.0
+    container_name: mysql
+    # env_file:
+    #   - .env.mysql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+
+  inicialization:
+    build:
+      context: .
+      dockerfile: ./docker/inicialization/Dockerfile
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: santiagopereyramarchetti/docker-swarm-inicialization:1.0
+    container_name: inicialization
+    # env_file:
+    #   - .env.ini.build
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: no
+    depends_on:
+      - mysql
+      - redis
+      - api
