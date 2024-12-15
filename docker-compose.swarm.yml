@@ -1,139 +1,139 @@
 version: "3.8"
 services:
 
-  proxy:
-    image: santiagopereyramarchetti/docker-swarm-proxy:1.0
-    deploy:
-      replicas: 1
-      # placement:
-      #   constraints:
-      #     - "node.labels.db!=true"
-      restart_policy:
-        condition: any
-        delay: 10s
-        max_attempts: 10
-        window: 15s
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 2m
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - frontend
-      - nginx
+  # proxy:
+  #   image: santiagopereyramarchetti/docker-swarm-proxy:1.0
+  #   deploy:
+  #     replicas: 1
+  #     # placement:
+  #     #   constraints:
+  #     #     - "node.labels.db!=true"
+  #     restart_policy:
+  #       condition: any
+  #       delay: 10s
+  #       max_attempts: 10
+  #       window: 15s
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 2m
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - frontend
+  #     - nginx
   
-  frontend:
-    image: santiagopereyramarchetti/docker-swarm-frontend:1.0
-    deploy:
-      replicas: 2
-      # placement:
-      #   constraints:
-      #     - "node.labels.db!=true"
-      restart_policy:
-        condition: any
-        delay: 10s
-        max_attempts: 5
-        window: 15s
-      update_config:
-        parallelism: 1
-        delay: 15s
-        max_failure_ratio: 0
-        order: stop-first
-      rollback_config:
-        parallelism: 1
-        delay: 15s
-        max_failure_ratio: 0
-        order: stop-first
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 1m30s
+  # frontend:
+  #   image: santiagopereyramarchetti/docker-swarm-frontend:1.0
+  #   deploy:
+  #     replicas: 2
+  #     # placement:
+  #     #   constraints:
+  #     #     - "node.labels.db!=true"
+  #     restart_policy:
+  #       condition: any
+  #       delay: 10s
+  #       max_attempts: 5
+  #       window: 15s
+  #     update_config:
+  #       parallelism: 1
+  #       delay: 15s
+  #       max_failure_ratio: 0
+  #       order: stop-first
+  #     rollback_config:
+  #       parallelism: 1
+  #       delay: 15s
+  #       max_failure_ratio: 0
+  #       order: stop-first
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 1m30s
 
-  nginx:
-    image: santiagopereyramarchetti/docker-swarm-nginx:1.0
-    secrets:
-      - source: laravel-env
-        target: /usr/src/.env
-        mode: 0660
-    deploy:
-      replicas: 2
-      # placement:
-      #   constraints:
-      #     - "node.labels.db!=true"
-      restart_policy:
-        condition: any
-        delay: 10s
-        max_attempts: 5
-        window: 15s
-      update_config:
-        parallelism: 1
-        delay: 10s
-        monitor: 15s
-        max_failure_ratio: 0
-        order: stop-first
-      rollback_config:
-        parallelism: 1
-        delay: 10s
-        monitor: 15s
-        max_failure_ratio: 0
-        order: stop-first
-      # LO QUITAMOS POR AHORA DEBIDO A QUE LA API TODAVIA NO FUNCIONA, RESPONDE CON ERROR
-      # healtcheck:
-      #   test: ["CMD", "curl", "-f", "http://localhost/api/health-check"]
-      #   interval: 30s
-      #   timeout: 5s
-      #   retries: 3
-      #   start_period: 1m
-    depends_on:
-      - api
+  # nginx:
+  #   image: santiagopereyramarchetti/docker-swarm-nginx:1.0
+  #   secrets:
+  #     - source: laravel-env
+  #       target: /usr/src/.env
+  #       mode: 0660
+  #   deploy:
+  #     replicas: 2
+  #     # placement:
+  #     #   constraints:
+  #     #     - "node.labels.db!=true"
+  #     restart_policy:
+  #       condition: any
+  #       delay: 10s
+  #       max_attempts: 5
+  #       window: 15s
+  #     update_config:
+  #       parallelism: 1
+  #       delay: 10s
+  #       monitor: 15s
+  #       max_failure_ratio: 0
+  #       order: stop-first
+  #     rollback_config:
+  #       parallelism: 1
+  #       delay: 10s
+  #       monitor: 15s
+  #       max_failure_ratio: 0
+  #       order: stop-first
+  #     # LO QUITAMOS POR AHORA DEBIDO A QUE LA API TODAVIA NO FUNCIONA, RESPONDE CON ERROR
+  #     # healtcheck:
+  #     #   test: ["CMD", "curl", "-f", "http://localhost/api/health-check"]
+  #     #   interval: 30s
+  #     #   timeout: 5s
+  #     #   retries: 3
+  #     #   start_period: 1m
+  #   depends_on:
+  #     - api
 
-  api:
-    image: santiagopereyramarchetti/docker-swarm-api:1.0
-    secrets:
-      - source: laravel-env
-        target: /usr/src/.env
-        mode: 0660
-      - source: init-env
-        target: /usr/src/.env.ini
-        mode: 0660
-    deploy:
-      replicas: 4
-      # placement:
-      #   constraints:
-      #     - "node.labels.db!=true"
-      restart_policy:
-        condition: any
-        delay: 5s
-        max_attempts: 3
-        window: 15s
-      update_config:
-        parallelism: 2
-        delay: 10s
-        failure_action: pause
-        monitor: 15s
-        max_failure_ratio: 0
-      rollback_config:
-        parallelism: 2
-        delay: 10s
-        failure_action: pause
-        monitor: 15s
-        max_failure_ratio: 0
-        order: stop-first
-    healthcheck:
-      test: ["CMD", "nc", "-zv", "localhost", "9000"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 40s
-    depends_on:
-      - mysql
-      - redis
+  # api:
+  #   image: santiagopereyramarchetti/docker-swarm-api:1.0
+  #   secrets:
+  #     - source: laravel-env
+  #       target: /usr/src/.env
+  #       mode: 0660
+  #     - source: init-env
+  #       target: /usr/src/.env.ini
+  #       mode: 0660
+  #   deploy:
+  #     replicas: 4
+  #     # placement:
+  #     #   constraints:
+  #     #     - "node.labels.db!=true"
+  #     restart_policy:
+  #       condition: any
+  #       delay: 5s
+  #       max_attempts: 3
+  #       window: 15s
+  #     update_config:
+  #       parallelism: 2
+  #       delay: 10s
+  #       failure_action: pause
+  #       monitor: 15s
+  #       max_failure_ratio: 0
+  #     rollback_config:
+  #       parallelism: 2
+  #       delay: 10s
+  #       failure_action: pause
+  #       monitor: 15s
+  #       max_failure_ratio: 0
+  #       order: stop-first
+  #   healthcheck:
+  #     test: ["CMD", "nc", "-zv", "localhost", "9000"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 40s
+  #   depends_on:
+  #     - mysql
+  #     - redis
       
   mysql:
     image: santiagopereyramarchetti/docker-swarm-mysql:1.0
@@ -165,11 +165,11 @@ services:
       retries: 3
       start_period: 30s
     volumes:
-      - type: volume
-        source: mysqldata
+      - type: bind
+        source: /mnt/gluster-swarm-volume/mysql
         target: /var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
   redis:
     image: redis:7-alpine
@@ -201,8 +201,8 @@ services:
       retries: 3
       start_period: 30s
     volumes:
-      - type: volume
-        source: redisdata
+      - type: bind
+        source: /mnt/gluster-swarm-volume/redis
         target: /data
 
 volumes:
