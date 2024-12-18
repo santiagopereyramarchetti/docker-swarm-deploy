@@ -75,7 +75,7 @@ services:
         platforms:
           - linux/amd64
           - linux/arm64
-    image: santiagopereyramarchetti/docker-swarm-mysql:1.0
+    image: santiagopereyramarchetti/local-mysql:1.0
     container_name: mysql
     # env_file:
     #   - .env.mysql
